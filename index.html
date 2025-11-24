@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 to PDF Converter</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6c757d;
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --border-color: #e5e7eb;
+            --error-color: #ef4444;
+            --success-color: #10b981;
+            --radius: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #111827;
+                --card-bg: #1f2937;
+                --text-primary: #f3f4f6;
+                --text-secondary: #9ca3af;
+                --border-color: #374151;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* File Upload */
+        .file-upload-container {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            text-align: center;
+            transition: border-color 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .file-upload-container:hover {
+            border-color: var(--primary-color);
+        }
+
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            pointer-events: none;
+            /* Let input handle clicks */
+        }
+
+        .file-label .icon {
+            font-size: 1.5rem;
+        }
+
+        .helper-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Text Input */
+        .text-input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-header label {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-color);
+            color: var(--text-primary);
+            font-family: monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: 2px solid var(--primary-color);
+            border-color: transparent;
+        }
+
+        /* Filename Input */
+        .filename-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filename-container label {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"] {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        /* Buttons */
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .primary-btn {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        .primary-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .secondary-btn {
+            background-color: transparent;
+            color: var(--text-secondary);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.85rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .secondary-btn:hover {
+            background-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        /* Status & Output */
+        .status-section {
+            margin-top: 1.5rem;
+        }
+
+        .status-message {
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+            display: none;
+            font-size: 0.95rem;
+        }
+
+        .status-message.info {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: var(--primary-color);
+            display: block;
+        }
+
+        .status-message.error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
+            display: block;
+        }
+
+        .status-message.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            display: block;
+        }
+
+        .download-container {
+            text-align: center;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background-color: var(--success-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius);
+            text-decoration: none;
+            font-weight: 500;
+            transition: transform 0.1s;
+        }
+
+        .download-btn:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Base64 to PDF Converter</h1>
+            <p class="subtitle">Paste Base64 or responses with Base64, upload any file, and download as PDF.</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <div class="file-upload-container">
+                    <label for="fileInput" class="file-label">
+                        <span class="icon">📂</span>
+                        <span>Upload any file</span>
+                        <span class="helper-text">We will convert it to Base64 and show it below.</span>
+                    </label>
+                    <input type="file" id="fileInput" class="file-input">
+                </div>
+
+                <div class="text-input-container">
+                    <div class="input-header">
+                        <label for="base64Input">Base64 / API Response</label>
+                        <div class="actions">
+                            <button id="copyBtn" class="secondary-btn" title="Copy content">Copy</button>
+                            <button id="clearBtn" class="secondary-btn" title="Clear content">Clear</button>
+                        </div>
+                    </div>
+                    <textarea id="base64Input"
+                        placeholder="Paste Base64, or paste full API response (JSON/XML/text) that contains Base64..."></textarea>
+                </div>
+
+                <div class="filename-container">
+                    <label for="filenameInput">Output Filename (Optional)</label>
+                    <input type="text" id="filenameInput" placeholder="e.g. myfile.pdf">
+                </div>
+
+                <button id="convertBtn" class="primary-btn">Convert to PDF</button>
+            </section>
+
+            <section class="status-section">
+                <div id="statusMessage" class="status-message"></div>
+                <div id="downloadContainer" class="download-container"></div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>

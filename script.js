@@ -41,6 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!file) return;
 
         showStatus(`Reading ${file.name}...`, 'info');
+
+        // Revoke any existing ObjectURLs before clearing
+        const existingBtn = downloadContainer.querySelector('.download-btn');
+        if (existingBtn && existingBtn.dataset.blobUrl) {
+            URL.revokeObjectURL(existingBtn.dataset.blobUrl);
+        }
+
         downloadContainer.innerHTML = ''; // Clear previous download
 
         try {

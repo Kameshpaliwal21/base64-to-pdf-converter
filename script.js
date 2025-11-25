@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusMessage = document.getElementById('statusMessage');
     const downloadContainer = document.getElementById('downloadContainer');
 
-    let lastCreatedUrl = null; // Variable to hold the last created object URL
+
 
     // --- Helper Functions ---
 
@@ -80,10 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
         filenameInput.value = '';
         downloadContainer.innerHTML = '';
         clearStatus();
-        if (lastCreatedUrl) {
-            URL.revokeObjectURL(lastCreatedUrl);
-            lastCreatedUrl = null;
-        }
     });
 
     // Copy Base64
@@ -106,12 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showStatus('Processing...', 'info');
         downloadContainer.innerHTML = '';
-
-        // Revoke previous URL if it exists
-        if (lastCreatedUrl) {
-            URL.revokeObjectURL(lastCreatedUrl);
-            lastCreatedUrl = null;
-        }
 
         let base64String = rawInput;
 
@@ -156,15 +146,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 bytes[i] = binaryString.charCodeAt(i);
             }
 
+            // 4. Create fresh blob with proper MIME type
             const blob = new Blob([bytes], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
-            lastCreatedUrl = url; // Store the new URL
 
-            // 4. Download Setup
+            // 5. Create fresh ObjectURL
+            const url = URL.createObjectURL(blob);
+
+            // 6. Get filename
             const userFilename = filenameInput.value.trim();
             const filename = userFilename.endsWith('.pdf') ? userFilename : (userFilename ? `${userFilename}.pdf` : 'converted.pdf');
 
-            // Create visible download button
+            // 7. Create temporary anchor element
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+
+            // 8. Append to DOM, trigger download, and immediately remove
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            // 9. Revoke ObjectURL after short timeout to free memory
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 5000);
+
+            // 10. Create visible download button for manual re-download if needed
             const downloadBtn = document.createElement('a');
             downloadBtn.href = url;
             downloadBtn.download = filename;
@@ -172,22 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadBtn.textContent = `Download ${filename}`;
             downloadContainer.appendChild(downloadBtn);
 
-            // Auto-trigger download via hidden link to avoid pop-up blockers/state issues
-            const hiddenLink = document.createElement('a');
-            hiddenLink.style.display = 'none';
-            hiddenLink.href = url;
-            hiddenLink.download = filename;
-            document.body.appendChild(hiddenLink);
-            hiddenLink.click();
-
-            // Cleanup hidden link
-            setTimeout(() => {
-                document.body.removeChild(hiddenLink);
-            }, 1000); // Delay removal slightly to ensure download starts
-
-            if (statusMessage.className !== 'status-message error') {
-                showStatus('PDF generated and download started.', 'success');
-            }
+            showStatus('PDF generated and download started.', 'success');
 
         } catch (e) {
             console.error(e);

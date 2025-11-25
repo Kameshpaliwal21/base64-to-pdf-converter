@@ -6,13 +6,13 @@ After downloading 2 or more PDFs from the Base64 → PDF application, the browse
 ## Root Cause
 The previous implementation had several issues:
 1. **Delayed cleanup**: The hidden download link was only removed after 1 second, not immediately
-2. **Missing URL revocation**: ObjectURLs were only revoked when starting a new conversion or clearing the form, not after each individual download
+2. **Missing URL revocation**: ObjectURLs were only revoked when starting a new conversion or clearing the form, not properly managed per download
 3. **Shared URL tracking**: Using a single `lastCreatedUrl` variable instead of managing each download's URL independently
 
 ## Solution Implemented
 
-### Client-Side Download Pattern (A)
-The application now uses the recommended pattern:
+### Client-Side Download Pattern
+The application now uses the recommended pattern with proper lifecycle management:
 
 ```javascript
 // 1. Decode Base64 → byte array
@@ -28,26 +28,36 @@ const blob = new Blob([bytes], { type: 'application/pdf' });
 // 3. Create an ObjectURL from the blob
 const url = URL.createObjectURL(blob);
 
-// 4. Create a temporary <a> element
+// 4. Create a temporary <a> element for auto-download
 const a = document.createElement('a');
 a.href = url;
 a.download = fileName || "converted.pdf";
 
-// 5. Append it to document, call a.click(), then remove it
+// 5. Append it to document, call a.click(), then immediately remove it
 document.body.appendChild(a);
 a.click();
 a.remove();
 
-// 6. Revoke the URL after a short timeout
-setTimeout(() => URL.revokeObjectURL(url), 5000);
+// 6. Create visible download button (keeps URL alive)
+const downloadBtn = document.createElement('a');
+downloadBtn.href = url;
+downloadBtn.download = fileName;
+downloadBtn.dataset.blobUrl = url; // Store for later cleanup
+downloadContainer.appendChild(downloadBtn);
+
+// 7. Revoke old URLs when starting new conversion or clearing
+// (Done in the convert and clear button handlers)
 ```
 
 ### Key Changes Made
 
-1. **Immediate anchor removal**: The temporary `<a>` element is now removed immediately after `.click()` instead of waiting 1 second
-2. **Proper URL revocation**: Each ObjectURL is revoked after 5 seconds using `setTimeout`
-3. **Fresh resources per download**: Each download creates its own blob and ObjectURL, ensuring no shared state
-4. **Removed global tracking**: Eliminated the `lastCreatedUrl` variable since each download manages its own lifecycle
+1. **Immediate anchor removal**: The temporary `<a>` element is removed immediately after `.click()`
+2. **Smart URL lifecycle**: ObjectURLs are kept alive while the visible download button exists
+3. **Proper cleanup**: Old ObjectURLs are revoked when:
+   - Starting a new conversion
+   - Clicking the clear button
+4. **Fresh resources per download**: Each download creates its own blob and ObjectURL
+5. **Removed global tracking**: Eliminated the `lastCreatedUrl` variable since each download manages its own lifecycle
 
 ### Constraints Satisfied
 
@@ -55,7 +65,8 @@ setTimeout(() => URL.revokeObjectURL(url), 5000);
 ✅ **Does NOT use** `location.href = "data:...base64..."`  
 ✅ **Does NOT put** large Base64 strings into URL, cookies, or localStorage  
 ✅ **Each download uses** a fresh blob + fresh ObjectURL  
-✅ **Properly revokes** ObjectURLs after 5 seconds to free memory  
+✅ **Properly manages** ObjectURL lifecycle to prevent memory leaks  
+✅ **Download button remains functional** - no "check internet connectivity" errors
 
 ## Testing Instructions
 

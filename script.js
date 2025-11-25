@@ -78,6 +78,13 @@ document.addEventListener('DOMContentLoaded', () => {
     clearBtn.addEventListener('click', () => {
         base64Input.value = '';
         filenameInput.value = '';
+
+        // Revoke any existing ObjectURLs before clearing
+        const existingBtn = downloadContainer.querySelector('.download-btn');
+        if (existingBtn && existingBtn.dataset.blobUrl) {
+            URL.revokeObjectURL(existingBtn.dataset.blobUrl);
+        }
+
         downloadContainer.innerHTML = '';
         clearStatus();
     });
@@ -101,6 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         showStatus('Processing...', 'info');
+
+        // Revoke any existing ObjectURLs before creating new ones
+        const existingBtn = downloadContainer.querySelector('.download-btn');
+        if (existingBtn && existingBtn.dataset.blobUrl) {
+            URL.revokeObjectURL(existingBtn.dataset.blobUrl);
+        }
+
         downloadContainer.innerHTML = '';
 
         let base64String = rawInput;
@@ -156,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const userFilename = filenameInput.value.trim();
             const filename = userFilename.endsWith('.pdf') ? userFilename : (userFilename ? `${userFilename}.pdf` : 'converted.pdf');
 
-            // 7. Create temporary anchor element
+            // 7. Create temporary anchor element for auto-download
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
@@ -166,17 +180,15 @@ document.addEventListener('DOMContentLoaded', () => {
             a.click();
             a.remove();
 
-            // 9. Revoke ObjectURL after short timeout to free memory
-            setTimeout(() => {
-                URL.revokeObjectURL(url);
-            }, 5000);
-
-            // 10. Create visible download button for manual re-download if needed
+            // 9. Create visible download button for manual re-download
             const downloadBtn = document.createElement('a');
             downloadBtn.href = url;
             downloadBtn.download = filename;
             downloadBtn.className = 'download-btn';
             downloadBtn.textContent = `Download ${filename}`;
+
+            // Store the URL in the button's dataset so we can revoke it later
+            downloadBtn.dataset.blobUrl = url;
             downloadContainer.appendChild(downloadBtn);
 
             showStatus('PDF generated and download started.', 'success');

@@ -198,7 +198,10 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadBtn.dataset.blobUrl = url;
             downloadContainer.appendChild(downloadBtn);
 
-            showStatus('PDF generated and download started.', 'success');
+            // --- NEW: Auto-clear inputs after successful conversion ---
+            base64Input.value = '';
+            fileInput.value = '';
+            showStatus('PDF generated and download started. Inputs cleared.', 'success');
 
         } catch (e) {
             console.error(e);
